@@ -26,18 +26,12 @@ def get_next_day(date_str):
 
 
 def return_snowflake_conn():
-    user_id = "PranavReddy02"
-    password = "Pranav@2801"
-    account = "PIB54957"
 
-    conn = snowflake.connector.connect(
-        user=user_id,
-        password=password,
-        account=account,
-        warehouse= "stock_warehouse",
-        database = "stock_db",
-        schema = "raw_data"
-    )
+    # Initialize the SnowflakeHook
+    hook = SnowflakeHook(snowflake_conn_id='snowflake_conn')
+    
+    # Execute the query and fetch results
+    conn = hook.get_conn()
     return conn.cursor()
 
 
