@@ -10,29 +10,24 @@ import logging
 def return_snowflake_conn():
 
     hook = SnowflakeHook(snowflake_conn_id='snowflake_conn')
-    
     conn = hook.get_conn()
-   
     return conn.cursor()
 
 @task
 def set_stage():
     cur = return_snowflake_conn()
     
-    # First SQL statement: Create or replace the stage
     create_stage_sql = """
     CREATE OR REPLACE STAGE stock_db.raw_data.blob_stage
     url = 's3://s3-geospatial/readonly/'
     file_format = (type = csv, skip_header = 1, field_optionally_enclosed_by = '"');
     """
     
-    # Second SQL statement: Copy data into user_session_channel
     copy_user_session_sql = """
     COPY INTO stock_db.raw_data.user_session_channel
     FROM @stock_db.raw_data.blob_stage/user_session_channel.csv;
     """
     
-    # Third SQL statement: Copy data into session_timestamp
     copy_session_timestamp_sql = """
     COPY INTO stock_db.raw_data.session_timestamp
     FROM @stock_db.raw_data.blob_stage/session_timestamp.csv;
@@ -40,12 +35,10 @@ def set_stage():
     
     logging.info("Running stage setup SQL")
     
-    # Execute each statement separately
     cur.execute(create_stage_sql)
     cur.execute(copy_user_session_sql)
     cur.execute(copy_session_timestamp_sql)
 
-# Task to create tables if they don't exist
 @task
 def load():
     cur = return_snowflake_conn()
@@ -54,7 +47,6 @@ def load():
         # Begin transaction
         cur.execute("BEGIN;")
         
-        # First SQL statement: Create user_session_channel table
         create_user_session_table_sql = """
         CREATE TABLE IF NOT EXISTS stock_db.raw_data.user_session_channel (
             userId int not NULL,
@@ -63,11 +55,9 @@ def load():
         );
         """
         
-        # Execute first statement
         logging.info("Running table creation SQL for user_session_channel")
         cur.execute(create_user_session_table_sql)
         
-        # Second SQL statement: Create session_timestamp table
         create_session_timestamp_table_sql = """
         CREATE TABLE IF NOT EXISTS stock_db.raw_data.session_timestamp (
             sessionId varchar(32) primary key,
@@ -75,11 +65,9 @@ def load():
         );
         """
         
-        # Execute second statement
         logging.info("Running table creation SQL for session_timestamp")
         cur.execute(create_session_timestamp_table_sql)
 
-        # Commit the transaction if successful
         cur.execute("COMMIT;")
         
     except Exception as e:
@@ -108,5 +96,4 @@ with DAG(
     stage_task = set_stage()
     load_task = load()
 
-    # Task order: set_stage should run before load
     stage_task >> load_task
