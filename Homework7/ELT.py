@@ -50,8 +50,21 @@ def run_ctas(table, select_sql, primary_key=None):
             if int(result[1]) > 1:
                 print("!!!!!!!!!!!!!!")
                 raise Exception(f"Primary key uniqueness failed: {result}")
-            
+        duplicate_check_sql = """
+        SELECT sessionId, userId, COUNT(1) AS cnt
+        FROM {table}
+        GROUP BY sessionId, userId
+        HAVING COUNT(1) > 1
+        LIMIT 1
+        """
+        logging.info("Running additional duplicate check based on sessionId and userId.")
+        cur.execute(duplicate_check_sql.format(table=table))
+        result = cur.fetchone()
+        if result:
+            raise Exception(f"Duplicate records found for sessionId: {result[0]}, userId: {result[1]}")
+
         cur.execute("COMMIT;")
+        
     except Exception as e:
         cur.execute("ROLLBACK")
         logging.error('Failed to sql. Completed ROLLBACK!')
