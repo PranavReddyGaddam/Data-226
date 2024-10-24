@@ -21,7 +21,6 @@ With regard to how to set up these two tables, please refer to this README file:
 def return_snowflake_conn():
 
     hook = SnowflakeHook(snowflake_conn_id='snowflake_conn')
-
     conn = hook.get_conn()
     return conn.cursor()
 
@@ -39,8 +38,8 @@ def run_ctas(table, select_sql, primary_key=None):
         sql = f"CREATE OR REPLACE TABLE {table} AS {select_sql}"
         logging.info(sql)
         cur.execute(sql)
+"""We check for primary key uniqueness here"""
 
-        # do primary key uniquess check
         if primary_key is not None:
             sql = f"SELECT {primary_key}, COUNT(1) AS cnt FROM {table} GROUP BY 1 ORDER BY 2 DESC LIMIT 1"
             print(sql)
@@ -50,6 +49,8 @@ def run_ctas(table, select_sql, primary_key=None):
             if int(result[1]) > 1:
                 print("!!!!!!!!!!!!!!")
                 raise Exception(f"Primary key uniqueness failed: {result}")
+"""We check for duplicate records creating a composite key by using the sessionId and userId columns"""    
+
         duplicate_check_sql = """
         SELECT sessionId, userId, COUNT(1) AS cnt
         FROM {table}
@@ -70,8 +71,6 @@ def run_ctas(table, select_sql, primary_key=None):
         logging.error('Failed to sql. Completed ROLLBACK!')
         raise
 
-
-
 with DAG(
     dag_id='ELT',
     start_date=datetime(2024, 10, 2),
@@ -80,14 +79,12 @@ with DAG(
     schedule='45 2 * * *'
 ) as dag:
 
-    # SQL query to join the two tables
     table = "stock_db.analytics.session_summary"
     select_sql = """
     SELECT u.*, s.ts
     FROM stock_db.raw_data.user_session_channel u
     JOIN stock_db.raw_data.session_timestamp s ON u.sessionId=s.sessionId
     """
-
 
     ctas_task = run_ctas(table, select_sql, primary_key='sessionId')
 
