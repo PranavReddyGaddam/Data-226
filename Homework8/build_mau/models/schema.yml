@@ -1,0 +1,19 @@
+version: 2
+
+sources:
+  - name: raw_data
+    database: stock_db  # replace with your Snowflake database name
+    schema: raw_data  # replace with your Snowflake schema name
+    tables:
+      - name: user_session_channel
+      - name: session_timestamp
+
+models:
+  - name: session_summary
+    description: "Analytics model for session data"
+    columns:
+      - name: sessionId
+        description: "Unique identifier for each session"
+        tests:
+          - unique
+          - not_null
