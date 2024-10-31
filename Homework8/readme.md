@@ -174,11 +174,6 @@ models:
   ```bash
   dbt test
   ```
-
-## GitHub Repository
-
-Upload the project to a GitHub repository and share the link as required.
-
 ## Notes
 
 - Ensure that your Snowflake credentials are securely managed in `profiles.yml`.
