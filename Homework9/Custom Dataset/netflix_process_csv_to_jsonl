@@ -1,0 +1,28 @@
+import pandas as pd
+import json
+
+# Load the dataset
+file_path = r'C:\Users\Pranav Reddy\OneDrive\Desktop\Assignments\Data 226 - Data Warehouse\sjsu-data226\week11\Custom Dataset\netflix_titles.csv'
+df = pd.read_csv(file_path)
+
+# Process the data and create a list of dictionaries for JSONL formatting
+processed_data = []
+for index, row in df.iterrows():
+    text = f"{row['type']} {row['description']}"
+    processed_data.append({
+        "put": f"id:hybrid-search:doc::{index}",
+        "fields": {
+            "doc_id": index,
+            "title": row['title'],
+            "text": text
+        }
+    })
+
+# Write the processed data to a JSONL file
+output_file_path = 'netflix_data.jsonl'
+with open(output_file_path, "w") as outfile:
+    for entry in processed_data:
+        json.dump(entry, outfile)
+        outfile.write("\n")
+
+print(f"Data saved to {output_file_path}")
